@@ -1,7 +1,8 @@
-fastapi==0.116.1
-SQLAlchemy==2.0.42
-uvicorn==0.35.0
-PyMySQL==1.1.1
-py-ip2region
-IP2Location
+fastapi==0.135.2
+SQLAlchemy==2.0.48
+uvicorn==0.42.0
+psycopg2==2.9.11
+py-ip2region==3.0.4
+IP2Location==8.11.0
 jieba==0.42.1
+websockets==16.0
