@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+*.local
+coverage/
+playwright-report/
+test-results/
+.vite/
+
+
+# backend
+.venv/
+__pycache__/
+FRONTEND_MIGRATION_SPEC.md

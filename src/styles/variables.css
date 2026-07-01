@@ -1,0 +1,138 @@
+/* ===== Design Tokens ===== */
+/* Apple Liquid Glass web approximation — light & dark */
+
+:root {
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* Zinc neutral palette */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f4f4f5;
+  --color-neutral-200: #e4e4e7;
+  --color-neutral-300: #d4d4d8;
+  --color-neutral-400: #a1a1aa;
+  --color-neutral-500: #71717a;
+  --color-neutral-600: #52525b;
+  --color-neutral-700: #3f3f46;
+  --color-neutral-800: #27272a;
+  --color-neutral-900: #18181b;
+  --color-neutral-950: #09090b;
+
+  /* Refined blue accent (saturation ~70%) */
+  --color-accent-50: #eff6ff;
+  --color-accent-100: #dbeafe;
+  --color-accent-200: #bfdbfe;
+  --color-accent-300: #93c5fd;
+  --color-accent-400: #60a5fa;
+  --color-accent-500: #3b82f6;
+  --color-accent-600: #2563eb;
+  --color-accent-700: #1d4ed8;
+  --color-accent-800: #1e40af;
+  --color-accent-900: #1e3a8a;
+  --color-accent-950: #172554;
+
+  /* Surfaces */
+  --surface-primary: #fafafa;
+  --surface-secondary: #f4f4f5;
+  --surface-tertiary: #e4e4e7;
+
+  /* Text */
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
+  --text-inverse: #fafafa;
+
+  /* Borders */
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.10);
+  --border-strong: rgba(0, 0, 0, 0.16);
+
+  /* Liquid Glass tokens */
+  --glass-blur: 24px;
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-bg-hover: rgba(255, 255, 255, 0.78);
+  --glass-bg-active: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.32);
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-shadow: rgba(0, 0, 0, 0.06);
+
+  /* Glass — strong (panels, cards) */
+  --glass-strong-bg: rgba(255, 255, 255, 0.72);
+  --glass-strong-border: rgba(255, 255, 255, 0.40);
+  --glass-strong-highlight: rgba(255, 255, 255, 0.92);
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Layout */
+  --sidebar-width: 16rem;
+  --max-content-width: 48rem;
+
+  /* Transitions */
+  --transition-default: 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-spring: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== Dark Mode ===== */
+.dark {
+  --surface-primary: #09090b;
+  --surface-secondary: #18181b;
+  --surface-tertiary: #27272a;
+
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #52525b;
+  --text-inverse: #09090b;
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  --glass-bg: rgba(24, 24, 27, 0.50);
+  --glass-bg-hover: rgba(24, 24, 27, 0.65);
+  --glass-bg-active: rgba(24, 24, 27, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
+  --glass-shadow: rgba(0, 0, 0, 0.30);
+
+  --glass-strong-bg: rgba(24, 24, 27, 0.60);
+  --glass-strong-border: rgba(255, 255, 255, 0.12);
+  --glass-strong-highlight: rgba(255, 255, 255, 0.08);
+}
+
+/* ===== Reduced Transparency Fallback ===== */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-blur: 0px;
+    --glass-bg: rgba(255, 255, 255, 0.96);
+    --glass-bg-hover: rgba(255, 255, 255, 0.98);
+    --glass-bg-active: rgba(255, 255, 255, 1);
+    --glass-border: rgba(0, 0, 0, 0.10);
+    --glass-highlight: transparent;
+    --glass-shadow: rgba(0, 0, 0, 0.04);
+    --glass-strong-bg: rgba(255, 255, 255, 0.98);
+    --glass-strong-border: rgba(0, 0, 0, 0.12);
+    --glass-strong-highlight: transparent;
+  }
+
+  .dark {
+    --glass-bg: rgba(24, 24, 27, 0.96);
+    --glass-bg-hover: rgba(24, 24, 27, 0.98);
+    --glass-bg-active: rgba(24, 24, 27, 1);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-highlight: transparent;
+    --glass-shadow: rgba(0, 0, 0, 0.20);
+    --glass-strong-bg: rgba(24, 24, 27, 0.98);
+    --glass-strong-border: rgba(255, 255, 255, 0.10);
+    --glass-strong-highlight: transparent;
+  }
+}
