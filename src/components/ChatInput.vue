@@ -1,12 +1,12 @@
 <template>
-  <div class="px-4 pb-4 pt-2">
-    <div class="glass-strong rounded-2xl px-4 py-2 max-w-3xl mx-auto">
+  <div class="px-4 pb-8 pt-2">
+    <div class="glass-strong rounded-2xl px-4 py-2 max-w-3xl mx-auto input-glow">
       <div class="flex items-end gap-2">
         <!-- 文本输入区 -->
         <textarea
           ref="textareaRef"
           v-model="text"
-          class="flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed py-2 min-h-[44px] max-h-[120px] placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+          class="flex-1 bg-transparent resize-none outline-none text-[16px] leading-relaxed py-2 min-h-[44px] max-h-[120px] placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
           :placeholder="isRecording ? '录音中...' : '输入您的问题...'"
           rows="1"
           :disabled="disabled || isRecording"
@@ -130,3 +130,38 @@ function toggleRecording() {
   }
 }
 </script>
+
+<style scoped>
+.input-glow {
+  box-shadow:
+    inset 0 1px 0 var(--glass-strong-highlight),
+    0 4px 20px var(--glass-shadow),
+    0 0 24px rgba(59, 130, 246, 0.35),
+    0 0 56px rgba(59, 130, 246, 0.15);
+  transition: box-shadow var(--transition-default);
+}
+
+.input-glow:focus-within {
+  box-shadow:
+    inset 0 1px 0 var(--glass-strong-highlight),
+    0 4px 20px var(--glass-shadow),
+    0 0 32px rgba(59, 130, 246, 0.50),
+    0 0 72px rgba(59, 130, 246, 0.25);
+}
+
+.dark .input-glow {
+  box-shadow:
+    inset 0 1px 0 var(--glass-strong-highlight),
+    0 4px 20px var(--glass-shadow),
+    0 0 24px rgba(96, 165, 250, 0.40),
+    0 0 56px rgba(96, 165, 250, 0.18);
+}
+
+.dark .input-glow:focus-within {
+  box-shadow:
+    inset 0 1px 0 var(--glass-strong-highlight),
+    0 4px 20px var(--glass-shadow),
+    0 0 32px rgba(96, 165, 250, 0.55),
+    0 0 72px rgba(96, 165, 250, 0.28);
+}
+</style>

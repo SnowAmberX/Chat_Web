@@ -12,6 +12,7 @@ html {
   -webkit-text-size-adjust: 100%;
   tab-size: 4;
   line-height: 1.5;
+  font-size: 106.25%; /* 17px — 相比浏览器默认 16px 增加约 6%，全局字体微增 */
 }
 
 body {

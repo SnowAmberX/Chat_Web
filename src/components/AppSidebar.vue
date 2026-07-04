@@ -13,7 +13,7 @@
             <p class="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">招生咨询智能助理</p>
           </div>
           <button
-            class="p-2 rounded-xl hover:bg-neutral-100/60 dark:hover:bg-neutral-800/40 transition-colors"
+            class="p-2 rounded-xl hover:bg-neutral-200/80 dark:hover:bg-neutral-700/60 hover:scale-110 hover:shadow-md transition-all active:scale-95"
             :aria-label="isDark ? '切换浅色模式' : '切换深色模式'"
             @click="emit('toggleTheme')"
           >
