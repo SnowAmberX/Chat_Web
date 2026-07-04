@@ -10,6 +10,7 @@ SMTP 配置（服务器、端口、密码）通过环境变量注入，不硬编
   SMTP_PASSWORD   — aohelper@bnbu.edu.cn 的密码/授权码（必填）
 """
 
+
 from __future__ import annotations
 
 import asyncio
