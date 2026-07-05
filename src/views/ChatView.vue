@@ -42,7 +42,7 @@
           </div>
 
           <!-- 消息列表 -->
-          <div class="max-w-3xl mx-auto relative">
+          <div class="max-w-3xl mx-auto">
             <TransitionGroup name="message" tag="div">
               <ChatMessage
                 v-for="(msg, idx) in store.messages"
