@@ -315,6 +315,16 @@
   transition: transform 0.3s ease;
 }
 
+.message-leave-active {
+  position: absolute;
+  transition: opacity 0.2s ease, transform 0.25s ease;
+}
+
+.message-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
 /* Fade */
 .fade-enter-active,
 .fade-leave-active {
