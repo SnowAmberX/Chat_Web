@@ -18,6 +18,8 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.utils import formataddr, formatdate
+import threading
+import time
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -30,6 +32,10 @@ SMTP_SENDER_NAME = "招生助手提醒"
 SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
 SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
+
+SMTP_TIMEOUT = 15          # 连接/读写超时（秒）
+SMTP_MAX_RETRIES = 2       # 发送失败后的最大重试次数（不含首次）
+SMTP_IDLE_TIMEOUT = 120    # 空闲连接自动关闭（秒），避免长时间占用
 
 # ==================== 收件人列表 ====================
 # 在此数组中添加需要接收告警邮件的邮箱地址
@@ -220,11 +226,142 @@ def _build_html_body(
     )
 
 
+# ==================== SMTP 连接池 ====================
+
+
+class _SMTPConnectionPool:
+    """SMTP 连接池（单例），复用一条 SMTP_SSL 连接避免频繁 login 触发限流。
+
+    线程安全：使用 threading.Lock 保护连接状态。
+    空闲超时：超过 SMTP_IDLE_TIMEOUT 秒无活动则自动断开，下次发送时重连。
+    失败重试：sendmail 失败时断开重连并重试一次。
+    """
+
+    def __init__(self) -> None:
+        self._server: smtplib.SMTP_SSL | None = None
+        self._last_activity: float = 0.0
+        self._lock = threading.Lock()
+
+    def _ensure_connected(self) -> smtplib.SMTP_SSL:
+        """获取或创建连接。空闲超时则自动重连。首次连接失败记录 warning 后上抛。"""
+        now = time.monotonic()
+
+        if self._server is not None:
+            # 空闲超时则关闭旧连接
+            if now - self._last_activity > SMTP_IDLE_TIMEOUT:
+                logger.debug("SMTP 连接空闲超时，主动关闭")
+                self._close()
+            else:
+                self._last_activity = now
+                return self._server
+
+        # 建立新连接
+        logger.debug("正在连接 SMTP %s:%d (SSL)", SMTP_HOST, SMTP_PORT)
+        try:
+            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT)
+            server.login(SMTP_SENDER, SMTP_PASSWORD)
+        except Exception:
+            logger.warning(
+                "SMTP 连接/login 失败: host=%s:%d, sender=%s",
+                SMTP_HOST, SMTP_PORT, SMTP_SENDER, exc_info=True,
+            )
+            raise
+
+        self._server = server
+        self._last_activity = now
+        logger.info("SMTP 连接已建立: %s:%d", SMTP_HOST, SMTP_PORT)
+        return server
+
+    def _close(self) -> None:
+        """断开当前连接（幂等）。"""
+        if self._server is None:
+            return
+        try:
+            self._server.quit()
+        except Exception:
+            pass
+        self._server = None
+        self._last_activity = 0.0
+
+    def send(self, msg: MIMEText) -> bool:
+        """发送邮件。失败时自动重连并重试一次。返回 True/False。"""
+        if not is_configured():
+            return False
+
+        with self._lock:
+            for attempt in range(1 + SMTP_MAX_RETRIES):  # 首次 + 重试
+                start = time.monotonic()
+                try:
+                    server = self._ensure_connected()
+                    server.sendmail(SMTP_SENDER, ALERT_RECIPIENTS, msg.as_string())
+                    elapsed = (time.monotonic() - start) * 1000
+
+                    if attempt > 0:
+                        logger.info(
+                            "告警邮件重试成功 (第 %d 次重试): to=%s, elapsed=%.0fms",
+                            attempt, ", ".join(ALERT_RECIPIENTS), elapsed,
+                        )
+                    else:
+                        logger.info(
+                            "告警邮件已发送: to=%s, elapsed=%.0fms",
+                            ", ".join(ALERT_RECIPIENTS), elapsed,
+                        )
+                    return True
+
+                except Exception as exc:
+                    elapsed = (time.monotonic() - start) * 1000
+                    smtp_msg = _extract_smtp_message(exc)
+
+                    if attempt < SMTP_MAX_RETRIES:
+                        logger.warning(
+                            "告警邮件发送失败 (第 %d/%d 次): to=%s, elapsed=%.0fms, "
+                            "error=%s, smtp=%s — 断开重连后重试",
+                            attempt + 1, 1 + SMTP_MAX_RETRIES,
+                            ", ".join(ALERT_RECIPIENTS), elapsed,
+                            type(exc).__name__, smtp_msg,
+                        )
+                        self._close()
+                        time.sleep(min(2 ** attempt, 4))  # 指数退避: 1s, 2s, 4s (cap)
+                    else:
+                        logger.exception(
+                            "告警邮件发送最终失败 (已重试 %d 次): to=%s, elapsed=%.0fms, "
+                            "error=%s, smtp=%s, host=%s:%d",
+                            SMTP_MAX_RETRIES,
+                            ", ".join(ALERT_RECIPIENTS), elapsed,
+                            type(exc).__name__, smtp_msg,
+                            SMTP_HOST, SMTP_PORT,
+                        )
+                        self._close()
+            return False
+
+    def shutdown(self) -> None:
+        """显式关闭连接（进程退出前调用）。"""
+        with self._lock:
+            self._close()
+
+
+def _extract_smtp_message(exc: BaseException) -> str:
+    """从 SMTP 异常中提取服务器返回的文本消息。"""
+    try:
+        if hasattr(exc, "smtp_error"):
+            raw = getattr(exc, "smtp_error")
+            if isinstance(raw, bytes):
+                return raw.decode("utf-8", errors="replace")
+            return str(raw)
+        if hasattr(exc, "smtp_code"):
+            return f"code={getattr(exc, 'smtp_code')}"
+    except Exception:
+        pass
+    return str(exc)[:200]
+
+
+_pool = _SMTPConnectionPool()
+
 # ==================== 发送函数 ====================
 
 
 def send_alert_email_sync(alert_data: dict[str, Any]) -> bool:
-    """同步发送告警邮件（内部调用，由 async wrapper 包装）"""
+    """同步发送告警邮件（内部调用，由 async wrapper 包装）。"""
     if not is_configured():
         logger.debug("邮件未配置，跳过发送")
         return False
@@ -237,34 +374,29 @@ def send_alert_email_sync(alert_data: dict[str, Any]) -> bool:
     msg["To"] = ", ".join(ALERT_RECIPIENTS)
     msg["Date"] = formatdate(localtime=True)
     msg["X-Priority"] = "1" if alert_data.get("intent_type") == "urgent" else "3"
+    msg["X-Mailer"] = "BNBU-Admission-Assistant"
 
-    try:
-        if SMTP_PORT == 465:
-            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-                server.login(SMTP_SENDER, SMTP_PASSWORD)
-                server.sendmail(SMTP_SENDER, ALERT_RECIPIENTS, msg.as_string())
-        else:
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-                if SMTP_PORT == 587:
-                    server.starttls()
-                server.login(SMTP_SENDER, SMTP_PASSWORD)
-                server.sendmail(SMTP_SENDER, ALERT_RECIPIENTS, msg.as_string())
+    contact = alert_data.get("contact", "?")
+    intent_type = alert_data.get("intent_type", "?")
 
+    success = _pool.send(msg)
+
+    if success:
         logger.info(
-            "告警邮件已发送: to=%s, contact=%s, type=%s",
-            ", ".join(ALERT_RECIPIENTS),
-            alert_data.get("contact"),
-            alert_data.get("intent_type"),
+            "告警邮件流程完成: to=%s, contact=%s, type=%s",
+            ", ".join(ALERT_RECIPIENTS), contact, intent_type,
         )
-        return True
+    else:
+        logger.error(
+            "告警邮件流程失败: to=%s, contact=%s, type=%s",
+            ", ".join(ALERT_RECIPIENTS), contact, intent_type,
+        )
 
-    except Exception:
-        logger.exception("发送告警邮件失败: to=%s, contact=%s", ", ".join(ALERT_RECIPIENTS), alert_data.get("contact"))
-        return False
+    return success
 
 
 async def send_alert_email(alert_data: dict[str, Any]) -> bool:
-    """异步发送告警邮件，在 executor 中执行同步 SMTP 操作"""
+    """异步发送告警邮件，在 executor 中执行同步 SMTP 操作。"""
     if not is_configured():
         return False
 
