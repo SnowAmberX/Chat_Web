@@ -1,17 +1,16 @@
 <template>
+  <!-- Welcome Modal -->
   <Teleport to="body">
     <Transition name="modal">
       <div
-        v-if="visible"
+        v-if="visible && !showGeoSelector"
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="welcome-title"
       >
-        <!-- 背景遮罩 -->
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
-        <!-- 弹窗 -->
         <div class="glass-strong rounded-3xl p-8 max-w-md w-full relative z-10 shadow-2xl">
           <div class="text-center mb-6">
             <div class="w-14 h-14 rounded-2xl overflow-hidden mx-auto mb-4 shadow-lg shadow-accent-500/25">
@@ -65,12 +64,20 @@
       </div>
     </Transition>
   </Teleport>
+
+  <!-- Region Selector (shown after registration if region is Unknown) -->
+  <RegionSelector
+    v-if="showGeoSelector"
+    :user-id="store.currentUserId"
+    @confirmed="handleGeoConfirmed"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { registerUser } from '@/api/records'
 import { useChatStore } from '@/stores/chat'
+import RegionSelector from '@/components/RegionSelector.vue'
 
 const aiAvatarUrl = import.meta.env.BASE_URL + 'AI.jpg'
 
@@ -80,8 +87,22 @@ const emit = defineEmits<{
 
 const store = useChatStore()
 
-/* 判断是否需要显示 */
+/* 判断是否需要显示欢迎弹窗 */
 const visible = computed(() => !store.currentUserId || !store.currentDisplayName)
+
+/* 区域选择器状态 */
+const showGeoSelector = ref(false)
+
+/* 已注册用户刷新后仍需检查 geo */
+onMounted(() => {
+  if (
+    store.currentUserId &&
+    !store.userGeo.manual_geo &&
+    (!store.userGeo.region || store.userGeo.region === 'Unknown')
+  ) {
+    showGeoSelector.value = true
+  }
+})
 
 const displayName = ref('')
 const error = ref('')
@@ -102,12 +123,33 @@ async function handleSubmit() {
   try {
     const result = await registerUser(displayName.value.trim())
     store.setUserInfo(result.id.toString(), result.username)
-    emit('registered')
+
+    /* 保存地理位置信息 */
+    store.setUserGeo(
+      result.region || '',
+      result.country_code || '',
+      result.country_name || '',
+      result.manual_geo || false,
+    )
+
     displayName.value = ''
+
+    /* IP 无法识别且用户未手动选择过 → 弹出区域选择器 */
+    if (result.region === 'Unknown' && !result.manual_geo) {
+      showGeoSelector.value = true
+      return
+    }
+
+    emit('registered')
   } catch (err: unknown) {
     error.value = err instanceof Error ? err.message : '注册失败，请重试'
   } finally {
     isSubmitting.value = false
   }
+}
+
+function handleGeoConfirmed() {
+  showGeoSelector.value = false
+  emit('registered')
 }
 </script>

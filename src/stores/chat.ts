@@ -37,6 +37,14 @@ export const useChatStore = defineStore('chat', {
     pendingAlertType: null as AlertType | null,
     contactInfo: { phone: '' },
     contactModalState: 'idle' as ContactModalState,
+
+    /* 用户地理位置信息 */
+    userGeo: {
+      region: safeGetItem('chat_user_region') || '',
+      country_code: safeGetItem('chat_user_country_code') || '',
+      country_name: safeGetItem('chat_user_country_name') || '',
+      manual_geo: safeGetItem('chat_user_manual_geo') === 'true',
+    },
   }),
 
   getters: {
@@ -50,6 +58,17 @@ export const useChatStore = defineStore('chat', {
       this.currentDisplayName = displayName
       safeSetItem('chat_user_id', uid)
       safeSetItem('chat_display_name', displayName)
+    },
+
+    setUserGeo(region: string, country_code: string, country_name: string, manual_geo: boolean) {
+      this.userGeo.region = region
+      this.userGeo.country_code = country_code
+      this.userGeo.country_name = country_name
+      this.userGeo.manual_geo = manual_geo
+      safeSetItem('chat_user_region', region)
+      safeSetItem('chat_user_country_code', country_code)
+      safeSetItem('chat_user_country_name', country_name)
+      safeSetItem('chat_user_manual_geo', String(manual_geo))
     },
 
     addMessage(message: Message) {

@@ -74,6 +74,18 @@ export interface RegisterRequest {
 export interface RegisterResponseData {
   id: number
   username: string
+  region?: string
+  country_code?: string | null
+  country_name?: string
+  manual_geo?: boolean
+}
+
+/* PUT /api/chat/user-geo 请求 */
+export interface UpdateUserGeoRequest {
+  user_id: string
+  region: string
+  country_code: string
+  country_name: string
 }
 
 /* POST /api/chat/record 请求 */

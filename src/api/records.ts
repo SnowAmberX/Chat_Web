@@ -2,6 +2,7 @@ import { chatApi, extractErrorMessage } from './client'
 import type {
   ApiResponse,
   RegisterResponseData,
+  UpdateUserGeoRequest,
   SaveRecordRequest,
   ChatRecordItem,
   SessionsListItem,
@@ -17,6 +18,20 @@ export async function registerUser(displayName: string): Promise<RegisterRespons
     })
     if (res.data.code === 200) return res.data.data
     throw new Error(res.data.message || '注册失败')
+  } catch (err) {
+    throw new Error(extractErrorMessage(err))
+  }
+}
+
+/**
+ * 手动更新用户地理位置信息。
+ */
+export async function updateUserGeo(data: UpdateUserGeoRequest): Promise<void> {
+  try {
+    const res = await chatApi.put<ApiResponse>('/user-geo', data)
+    if (res.data.code !== 200) {
+      throw new Error(res.data.message || '更新失败')
+    }
   } catch (err) {
     throw new Error(extractErrorMessage(err))
   }

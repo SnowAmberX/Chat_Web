@@ -10,7 +10,6 @@ SMTP 配置（服务器、端口、密码）通过环境变量注入，不硬编
   SMTP_PASSWORD   — aohelper@bnbu.edu.cn 的密码/授权码（必填）
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -157,9 +156,14 @@ ALERT_EMAIL_TEMPLATE = """\
         <div class="field-value">{client_ip}</div>
       </div>
       <div class="field">
-        <div class="field-label">IP 归属地</div>
-        <div class="field-value">{region}</div>
+        <div class="field-label">国家/地区</div>
+        <div class="field-value">{country_name}</div>
       </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">区域</div>
+      <div class="field-value">{region}</div>
     </div>
 
     <hr class="hr">
@@ -191,6 +195,7 @@ def _build_html_body(
     student_name: str,
     client_ip: str,
     region: str,
+    country_name: str = "Unknown",
     intent_type: str,
     message_snippet: str,
     session_id: str,
@@ -208,6 +213,7 @@ def _build_html_body(
         contact=contact,
         student_name=student_name or "匿名用户",
         client_ip=client_ip,
+        country_name=country_name or "Unknown",
         region=region or "未知",
         message_snippet=message_snippet or "（无）",
         session_id=session_id or "（无）",
