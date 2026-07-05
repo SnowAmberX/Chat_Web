@@ -112,7 +112,7 @@
       @delete-session="handleDeleteSession"
       @new-session="handleNewSession"
       @toggle-theme="toggleTheme"
-      @navigate-settings="sidebarOpen = false"
+
     />
 
     <!-- 弹窗 -->

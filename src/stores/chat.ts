@@ -28,7 +28,7 @@ export const useChatStore = defineStore('chat', {
   state: () => ({
     messages: [] as Message[],
     loadingSessions: {} as Record<string, boolean>,
-    isStreaming: true,
+    isStreaming: import.meta.env.VITE_STREAMING_ENABLED !== 'false',
     sessions: [] as ClientSession[],
     currentSessionId: '' as string,
     currentUserId: safeGetItem('chat_user_id') || '',
@@ -246,10 +246,6 @@ export const useChatStore = defineStore('chat', {
       if (session) {
         session.messages = session.messages.filter((m) => m.id !== id)
       }
-    },
-
-    toggleStreaming() {
-      this.isStreaming = !this.isStreaming
     },
 
     setSessionLoading(sessionId: string, loading: boolean) {

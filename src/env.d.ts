@@ -14,6 +14,7 @@ interface ImportMetaEnv {
   readonly VITE_DEV_MOCK_RAG_CHAT: string
   readonly VITE_PROXY_TARGET: string
   readonly VITE_APP_TITLE: string
+  readonly VITE_STREAMING_ENABLED: string
 }
 
 interface ImportMeta {

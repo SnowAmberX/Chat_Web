@@ -41,13 +41,7 @@
             </div>
             <span class="text-[13px] truncate text-neutral-700 dark:text-neutral-300">{{ userDisplayName || '未登录' }}</span>
           </div>
-          <button
-            class="p-2 rounded-xl hover:bg-neutral-100/60 dark:hover:bg-neutral-800/40 transition-colors flex-shrink-0"
-            aria-label="设置"
-            @click="handleNavigateSettings"
-          >
-            <IconSettings :size="16" class="text-neutral-400" />
-          </button>
+
         </div>
       </div>
     </div>
@@ -89,14 +83,10 @@
                 </div>
               </div>
               <div class="flex gap-2">
-                <button class="flex-1 glass-button rounded-xl py-2 text-xs flex items-center justify-center gap-1.5" @click="emit('toggleTheme')">
+                <button class="glass-button rounded-xl py-2 text-xs flex items-center justify-center gap-1.5 w-full" @click="emit('toggleTheme')">
                   <IconSun v-if="isDark" :size="14" />
                   <IconMoon v-else :size="14" />
                   <span>{{ isDark ? '浅色' : '深色' }}</span>
-                </button>
-                <button class="flex-1 glass-button rounded-xl py-2 text-xs flex items-center justify-center gap-1.5" @click="handleNavigateSettings">
-                  <IconSettings :size="14" />
-                  <span>设置</span>
                 </button>
               </div>
             </div>
@@ -108,11 +98,9 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import type { ClientSession } from '@/types'
 import IconSun from './icons/IconSun.vue'
 import IconMoon from './icons/IconMoon.vue'
-import IconSettings from './icons/IconSettings.vue'
 import IconClose from './icons/IconClose.vue'
 import SessionList from './SessionList.vue'
 
@@ -130,12 +118,8 @@ const emit = defineEmits<{
   deleteSession: [sessionId: string]
   newSession: []
   toggleTheme: []
-  navigateSettings: []
 }>()
-
-const router = useRouter()
 
 function onSelect(id: string) { emit('selectSession', id); emit('close') }
 function onNew() { emit('newSession'); emit('close') }
-function handleNavigateSettings() { emit('navigateSettings'); router.push('/settings'); emit('close') }
 </script>
