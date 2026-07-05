@@ -122,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onMounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useChat } from '@/composables/useChat'
 import { useVoice } from '@/composables/useVoice'
@@ -202,6 +202,13 @@ async function handleDeleteSession(id: string) {
 async function handleRegistered() {
   await store.loadSessionsFromDB()
 }
+
+/* 老用户刷新后自动恢复会话 */
+onMounted(() => {
+  if (store.currentUserId) {
+    store.loadSessionsFromDB()
+  }
+})
 
 function handleStartRecording() {
   startRecording()
