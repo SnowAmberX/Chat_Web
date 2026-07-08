@@ -117,9 +117,9 @@ async function handleSubmit() {
     await sendAlert({
       studentName: store.currentDisplayName || store.currentUserId,
       contact: cleanedPhone,
-      sessionId: store.currentSessionId,
+      sessionId: store.pendingSessionId,
       intentType: store.pendingAlertType ?? 'high_intent',
-      messageSnippet: '',
+      messageSnippet: store.pendingMessageSnippet,
       userId: store.currentUserId,
     })
     store.markContactCompleted()

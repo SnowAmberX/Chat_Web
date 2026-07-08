@@ -15,3 +15,6 @@ FRONTEND_MIGRATION_SPEC.md
 
 # agent
 .reasonix
+
+# 手机号加密密钥
+.phone_key

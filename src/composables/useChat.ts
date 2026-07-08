@@ -33,7 +33,7 @@ export function useChat() {
   }
 
   async function handleSend(text: string) {
-    if (!text.trim() || isSending.value) return
+    if (!text.trim()) return
 
     /* 确保有当前会话 */
     if (!store.currentSessionId) {
@@ -46,16 +46,6 @@ export function useChat() {
     const assistantMessageId = `stream-${Date.now().toString()}`
     const abortController = new AbortController()
 
-    /* 创建发送上下文 */
-    const context: SendContext = {
-      requestId,
-      sessionId,
-      userMessageId,
-      assistantMessageId,
-      abortController,
-    }
-    activeContext.value = context
-    isSending.value = true
     overflowDetected.value = false
 
     /* 添加用户消息 */
@@ -64,7 +54,7 @@ export function useChat() {
       content: text.trim(),
       role: 'user',
       timestamp: Date.now(),
-    })
+    }, sessionId)
 
     /* 构建请求 */
     const history = buildHistory(store.messages)
@@ -80,7 +70,7 @@ export function useChat() {
           role: 'assistant',
           timestamp: Date.now(),
         }
-        store.addMessage(aiMsg)
+        store.addMessage(aiMsg, sessionId)
 
         let accumulated = ''
 
@@ -163,7 +153,7 @@ export function useChat() {
           content,
           role: 'assistant',
           timestamp: Date.now(),
-        })
+        }, sessionId)
 
         /* 保存记录 */
         saveChatRecord({
@@ -181,7 +171,7 @@ export function useChat() {
           /* 如果用户已留过手机号，不再重复告警 */
           const hasPhone = await checkUserHasPhone(store.currentUserId)
           if (hasPhone) return
-          store.setPendingAlert(result.type, result.matched)
+          store.setPendingAlert(result.type, text.trim(), sessionId)
         }
       }
     } catch (err: unknown) {
@@ -199,12 +189,10 @@ export function useChat() {
             : '抱歉，发送失败了，请稍后再试。',
           role: 'assistant',
           timestamp: Date.now(),
-        })
+        }, sessionId)
       }
     } finally {
       store.setSessionLoading(sessionId, false)
-      activeContext.value = null
-      isSending.value = false
     }
   }
 

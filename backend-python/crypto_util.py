@@ -1,7 +1,8 @@
 """手机号加解密工具（cryptography.fernet）
 
-加密密钥优先从环境变量 PHONE_ENCRYPTION_KEY 读取；
-首次运行时若未设置，自动生成并打印到日志（开发便捷，生产环境务必固定）。
+加密密钥优先级：
+1. 环境变量 PHONE_ENCRYPTION_KEY
+2. 项目目录下的 .phone_key 文件（自动生成并持久化）
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 import base64
 import logging
 import os
+from pathlib import Path
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -16,21 +18,31 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 logger = logging.getLogger(__name__)
 
-_SALT = b"chat_web_phone_salt_2024"  # 固定盐值，生产环境可改为环境变量
+_SALT = b"chat_web_phone_salt_2024"
+
+_KEY_FILE = Path(__file__).resolve().parent / ".phone_key"
 
 
 def _get_key() -> bytes:
-    """获取 Fernet 密钥：优先环境变量，否则自动生成。"""
+    """获取 Fernet 密钥：环境变量 → 文件 → 自动生成并持久化。"""
+    # 1. 环境变量
     env_key = os.environ.get("PHONE_ENCRYPTION_KEY")
     if env_key:
         return env_key.encode("utf-8")
 
-    # 自动生成（首次运行）
+    # 2. 持久化文件
+    if _KEY_FILE.exists():
+        key_data = _KEY_FILE.read_text(encoding="utf-8").strip()
+        if key_data:
+            return key_data.encode("utf-8")
+
+    # 3. 自动生成并写入文件（持久化）
     key = Fernet.generate_key()
-    logger.warning(
-        "⚠️  PHONE_ENCRYPTION_KEY 未设置，已自动生成（重启后失效）: %s",
-        key.decode(),
-    )
+    try:
+        _KEY_FILE.write_text(key.decode("utf-8"), encoding="utf-8")
+        logger.info("已生成加密密钥并写入 %s", _KEY_FILE)
+    except Exception:
+        logger.exception("写入密钥文件失败")
     return key
 
 

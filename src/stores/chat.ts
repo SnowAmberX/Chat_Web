@@ -35,6 +35,8 @@ export const useChatStore = defineStore('chat', {
     currentDisplayName: safeGetItem('chat_display_name') || '',
     showContactModal: false,
     pendingAlertType: null as AlertType | null,
+    pendingMessageSnippet: '',
+    pendingSessionId: '',
     contactInfo: { phone: '' },
     contactModalState: 'idle' as ContactModalState,
 
@@ -71,11 +73,12 @@ export const useChatStore = defineStore('chat', {
       safeSetItem('chat_user_manual_geo', String(manual_geo))
     },
 
-    addMessage(message: Message) {
+    addMessage(message: Message, sessionId?: string) {
       this.messages.push(message)
 
-      /* 同步到当前会话 */
-      const session = this.sessions.find((s) => s.id === this.currentSessionId)
+      /* 同步到指定会话（默认当前会话） */
+      const targetId = sessionId || this.currentSessionId
+      const session = this.sessions.find((s) => s.id === targetId)
       if (session) {
         session.messages.push({ ...message })
 
@@ -256,8 +259,10 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
-    setPendingAlert(type: AlertType, _messageSnippet: string) {
+    setPendingAlert(type: AlertType, messageSnippet: string, sessionId?: string) {
       this.pendingAlertType = type
+      this.pendingMessageSnippet = messageSnippet
+      this.pendingSessionId = sessionId || this.currentSessionId
       this.showContactModal = true
     },
 
@@ -265,12 +270,16 @@ export const useChatStore = defineStore('chat', {
       this.contactModalState = 'dismissed'
       this.showContactModal = false
       this.pendingAlertType = null
+      this.pendingMessageSnippet = ''
+      this.pendingSessionId = ''
     },
 
     markContactCompleted() {
       this.contactModalState = 'contacted'
       this.showContactModal = false
       this.pendingAlertType = null
+      this.pendingMessageSnippet = ''
+      this.pendingSessionId = ''
       this.contactInfo.phone = ''
     },
 
@@ -278,6 +287,8 @@ export const useChatStore = defineStore('chat', {
       this.contactModalState = 'idle'
       this.showContactModal = false
       this.pendingAlertType = null
+      this.pendingMessageSnippet = ''
+      this.pendingSessionId = ''
       this.contactInfo.phone = ''
     },
   },
