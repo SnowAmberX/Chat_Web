@@ -81,6 +81,7 @@ import { ref, computed, watch } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { validatePhone } from '@/utils/validation'
 import { sendAlert } from '@/api/alert'
+import { saveUserPhone } from '@/api/records'
 import IconAlert from './icons/IconAlert.vue'
 
 const store = useChatStore()
@@ -109,12 +110,17 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   try {
+    /* 先加密保存手机号到数据库 */
+    const cleanedPhone = phone.value.replace(/\s/g, '')
+    await saveUserPhone(store.currentUserId, cleanedPhone)
+    /* 再发送告警通知 */
     await sendAlert({
       studentName: store.currentDisplayName || store.currentUserId,
-      contact: phone.value.replace(/\s/g, ''),
+      contact: cleanedPhone,
       sessionId: store.currentSessionId,
       intentType: store.pendingAlertType ?? 'high_intent',
       messageSnippet: '',
+      userId: store.currentUserId,
     })
     store.markContactCompleted()
     phone.value = ''

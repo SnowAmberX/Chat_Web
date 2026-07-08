@@ -190,6 +190,10 @@ class ChatUser(Base):
         server_default=text("false"),
         nullable=False,
     )
+    phone: Mapped[str | None] = mapped_column(
+        String(256),
+        nullable=True,
+    )
     create_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         nullable=False,

@@ -24,6 +24,9 @@ from contextlib import asynccontextmanager
 # 共享数据库模块
 import database
 
+# 手机号加密
+import crypto_util
+
 # 子路由
 from statistic import router as statistic_router
 from ip2location import router as ip_router
@@ -187,6 +190,67 @@ async def update_user_geo(request: Request) -> JSONResponse:
     except Exception as exc:
         db.rollback()
         logger.exception("更新用户地理位置失败")
+        return JSONResponse(status_code=500, content={"code": 500, "message": f"服务器错误: {exc}"})
+    finally:
+        db.close()
+
+
+@app.put("/api/chat/user-phone")
+async def save_user_phone(request: Request) -> JSONResponse:
+    """保存用户手机号（加密后存入数据库）
+
+    Body: { "user_id": 1, "phone": "13800138000" }
+    """
+    body = await _safe_json_body(request)
+    user_id = database.parse_user_id(str(body.get("user_id") or ""))
+    phone = str(body.get("phone") or "").strip()
+
+    if not user_id:
+        return JSONResponse(status_code=400, content={"code": 400, "message": "缺少有效 user_id"})
+    if not phone:
+        return JSONResponse(status_code=400, content={"code": 400, "message": "缺少 phone"})
+
+    encrypted = crypto_util.encrypt_phone(phone)
+
+    db = database.SessionLocal()
+    try:
+        if not database.user_exists(db, user_id):
+            return JSONResponse(status_code=404, content={"code": 404, "message": "用户不存在"})
+
+        db.query(database.ChatUser).filter(database.ChatUser.id == user_id).update(
+            {"phone": encrypted},
+            synchronize_session=False,
+        )
+        db.commit()
+        return JSONResponse(status_code=200, content={
+            "code": 200,
+            "message": "手机号保存成功",
+        })
+    except Exception as exc:
+        db.rollback()
+        logger.exception("保存手机号失败")
+        return JSONResponse(status_code=500, content={"code": 500, "message": f"服务器错误: {exc}"})
+    finally:
+        db.close()
+
+
+@app.get("/api/chat/user-has-phone/{user_id}")
+def user_has_phone(user_id: str) -> JSONResponse:
+    """查询用户是否已留过手机号"""
+    uid = database.parse_user_id(user_id)
+    if not uid:
+        return JSONResponse(status_code=400, content={"code": 400, "message": "缺少有效 user_id"})
+
+    db = database.SessionLocal()
+    try:
+        user = db.query(database.ChatUser).filter(database.ChatUser.id == uid).first()
+        has_phone = bool(user and user.phone)
+        return JSONResponse(status_code=200, content={
+            "code": 200,
+            "message": "查询成功",
+            "data": {"has_phone": has_phone},
+        })
+    except Exception as exc:
         return JSONResponse(status_code=500, content={"code": 500, "message": f"服务器错误: {exc}"})
     finally:
         db.close()

@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { sendMessage, sendMessageStream } from '@/api/rag'
-import { saveChatRecord } from '@/api/records'
+import { saveChatRecord, checkUserHasPhone } from '@/api/records'
 import { checkForKeywords } from '@/utils/validation'
 import type { HistoryItem, SendContext, Message } from '@/types'
 
@@ -178,6 +178,9 @@ export function useChat() {
       if (store.contactModalState === 'idle') {
         const result = checkForKeywords(text.trim())
         if (result.type && result.matched) {
+          /* 如果用户已留过手机号，不再重复告警 */
+          const hasPhone = await checkUserHasPhone(store.currentUserId)
+          if (hasPhone) return
           store.setPendingAlert(result.type, result.matched)
         }
       }

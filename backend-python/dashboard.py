@@ -22,6 +22,8 @@ from database import ChatUser, ChatSession, SessionLocal, extract_client_ip, loo
 from email_sender import send_alert_email
 from time_util import cst_today_str, cst_days_ago_str, cst_time_str
 
+import crypto_util
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["数据大屏"])
@@ -144,9 +146,30 @@ async def receive_alert(request: Request) -> JSONResponse:
 
     alert_time = cst_time_str()
 
-    # 提取客户端 IP 并查询归属地
+    # 提取客户端 IP（仅用于邮件中显示，归属地从数据库读取）
     client_ip = extract_client_ip(request)
-    geo = lookup_geo(client_ip)
+
+    # 从数据库查询用户归属地（注册时写入或区域选择器设置，不再实时查 GeoIP）
+    country_name = "Unknown"
+    region = "Unknown"
+    db_phone = ""  # 数据库中的加密手机号（解密后用于邮件）
+    user_id_str = str(body.get("userId") or "").strip()
+    if user_id_str:
+        db = SessionLocal()
+        try:
+            uid = int(user_id_str)
+            user = db.query(ChatUser).filter(ChatUser.id == uid).first()
+            if user:
+                country_name = user.country_name or "Unknown"
+                region = user.region or "Unknown"
+                if user.phone:
+                    decrypted = crypto_util.decrypt_phone(user.phone)
+                    if decrypted:
+                        db_phone = decrypted
+        except (ValueError, Exception):
+            pass
+        finally:
+            db.close()
 
     # 推送到所有大屏客户端（保持现有逻辑不变）
     await manager.broadcast(
@@ -164,12 +187,14 @@ async def receive_alert(request: Request) -> JSONResponse:
     )
 
     # 异步发送告警邮件（不阻塞响应）
+    # 邮件中的联系方式优先使用数据库中解密的手机号，其次使用请求体中的 contact
+    email_contact = db_phone or contact
     email_data = {
-        "contact": contact,
+        "contact": email_contact,
         "student_name": student_name,
-        "client_ip": geo.ip,
-        "region": geo.region,
-        "country_name": geo.country_name,
+        "client_ip": client_ip,
+        "region": region,
+        "country_name": country_name,
         "intent_type": intent_type,
         "message_snippet": message_snippet,
         "session_id": session_id,
@@ -182,9 +207,9 @@ async def receive_alert(request: Request) -> JSONResponse:
         contact,
         intent_type,
         student_name,
-        geo.ip,
-        geo.country_name,
-        geo.region,
+        client_ip,
+        country_name,
+        region,
     )
 
     return JSONResponse(

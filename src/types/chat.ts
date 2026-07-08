@@ -119,6 +119,7 @@ export interface AlertRequest {
   sessionId: string
   intentType: AlertType
   messageSnippet: string
+  userId?: string
 }
 
 /* GET /api/ip/lookup 响应 data */

@@ -101,3 +101,33 @@ export async function fetchSessions(userId: string): Promise<SessionsListItem[]>
     throw new Error(extractErrorMessage(err))
   }
 }
+
+/**
+ * 保存用户手机号到数据库（加密存储）。
+ */
+export async function saveUserPhone(userId: string, phone: string): Promise<void> {
+  try {
+    const res = await chatApi.put<ApiResponse>('/user-phone', { user_id: userId, phone })
+    if (res.data.code !== 200) {
+      throw new Error(res.data.message || '保存失败')
+    }
+  } catch (err) {
+    throw new Error(extractErrorMessage(err))
+  }
+}
+
+/**
+ * 查询用户是否已留过手机号。
+ */
+export async function checkUserHasPhone(userId: string): Promise<boolean> {
+  try {
+    const res = await chatApi.get<ApiResponse<{ has_phone: boolean }>>(
+      `/user-has-phone/${encodeURIComponent(userId)}`,
+    )
+    if (res.data.code === 200) return res.data.data?.has_phone ?? false
+    return false
+  } catch (err) {
+    console.error('查询手机号状态失败:', extractErrorMessage(err))
+    return false
+  }
+}
